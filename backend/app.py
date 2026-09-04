@@ -56,6 +56,33 @@ def add_products():
 
     return jsonify({"message": "Products added Successfully!"}), 201
 
+@app.route("/api/products/<int:product_id>", methods=["PUT"])
+def update_product(product_id):
+
+    data = request.json
+
+    name = data["Name"]
+    price = data["Price"]
+    uom = data["UOM"]
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        UPDATE Products
+        SET Name = ?, Price = ?, UOM = ?
+        WHERE ProductID = ?
+        """,
+        (name, price, uom, product_id)
+    )
+
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({"message": "Product updated successfully!"})
 
 if __name__ == "__main__":
     app.run(debug=True)

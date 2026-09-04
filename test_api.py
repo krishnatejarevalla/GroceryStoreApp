@@ -1,14 +1,14 @@
 import requests
 
-url = "http://127.0.0.1:5000/api/products"
+url = "http://127.0.0.1:5000/api/products/1"
 
 product = {
-    "Name": "Rice",
-    "Price": 60,
+    "Name": "Basmati Rice",
+    "Price": 80,
     "UOM": "Kg"
 }
 
-response = requests.post(url, json=product)
+response = requests.put(url, json=product)
 
 print(response.status_code)
 print(response.json())
