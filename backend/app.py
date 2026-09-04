@@ -31,6 +31,9 @@ def get_products():
 def add_products():
     data = request.json
 
+    if not data:
+        return jsonify({"error": "Request body is required"}), 400
+    
     name = data["Name"]
     price = data["Price"]
     uom = data["UOM"]
