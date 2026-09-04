@@ -27,13 +27,19 @@ def get_products():
     connection.close()
 
     return jsonify(products_list)
-@app.route("/api/products", methods = ["POST"])
+@app.route("/api/products", methods=["POST"])
 def add_products():
+
     data = request.json
 
     if not data:
-        return jsonify({"error": "Request body is required"}), 400
-    
+        return jsonify({"message": "Request body is required!"}), 400
+
+    if "Name" not in data or "Price" not in data or "UOM" not in data:
+        return jsonify({
+            "message": "Name, Price and UOM are required!"
+        }), 400
+
     name = data["Name"]
     price = data["Price"]
     uom = data["UOM"]
@@ -45,7 +51,7 @@ def add_products():
         """
         INSERT INTO Products (Name, Price, UOM, IsActive)
         VALUES (?, ?, ?, ?)
-    """,
+        """,
         (name, price, uom, True)
     )
 
@@ -54,7 +60,7 @@ def add_products():
     cursor.close()
     connection.close()
 
-    return jsonify({"message": "Products added Successfully!"}), 201
+    return jsonify({"message": "Product added successfully!"}), 201
 
 @app.route("/api/products/<int:product_id>", methods=["PUT"])
 def update_product(product_id):
@@ -77,12 +83,18 @@ def update_product(product_id):
         (name, price, uom, product_id)
     )
 
+    if cursor.rowcount == 0:
+        cursor.close()
+        connection.close()
+
+        return jsonify({"message": "Product not found!"}), 404
+
     connection.commit()
 
     cursor.close()
     connection.close()
 
-    return jsonify({"message": "Product updated successfully!"})
+    return jsonify({"message": "Product updated successfully!"}), 200
 
 @app.route("/api/products/<int:product_id>", methods=["DELETE"])
 def delete_product(product_id):
@@ -95,12 +107,18 @@ def delete_product(product_id):
         (product_id,)
     )
 
+    if cursor.rowcount == 0:
+        cursor.close()
+        connection.close()
+
+        return jsonify({"message": "Product not found!"}), 404
+
     connection.commit()
 
     cursor.close()
     connection.close()
 
-    return jsonify({"message": "Product deleted successfully!"})
+    return jsonify({"message": "Product deleted successfully!"}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
