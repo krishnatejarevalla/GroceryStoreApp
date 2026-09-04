@@ -34,6 +34,40 @@ def get_product(product_id):
     }
 
     return jsonify(product_data)
+
+@app.route("/api/products/search", methods=["GET"])
+def search_products():
+    name = request.args.get("name")
+
+    if not name:
+        return jsonify({"message": "Search name is required!"}), 400
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT * FROM Products WHERE Name LIKE ? AND IsActive = 1",
+        (f"%{name}%",)
+    )
+
+    products = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    products_list = []
+
+    for product in products:
+        products_list.append({
+            "ProductID": product[0],
+            "Name": product[1],
+            "Price": float(product[2]),
+            "UOM": product[3],
+            "IsActive": bool(product[4])
+        })
+
+    return jsonify(products_list)
+
 @app.route("/api/products", methods=["POST"])
 def add_products():
 

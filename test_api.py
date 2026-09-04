@@ -1,17 +1,32 @@
 import requests
 
-url = "http://127.0.0.1:5000/api/products/1"
+base_url = "http://127.0.0.1:5000/api/products"
 
-response = requests.get(url)
+
+# Test search - product found
+response = requests.get(
+    f"{base_url}/search",
+    params={"name": "rice"}
+)
 
 print(response.status_code)
 print(response.json())
 
 
-# Test product not found
-url = "http://127.0.0.1:5000/api/products/999"
+# Test search - product not found
+response = requests.get(
+    f"{base_url}/search",
+    params={"name": "xyz"}
+)
 
-response = requests.get(url)
+print(response.status_code)
+print(response.json())
+
+
+# Test search - missing name
+response = requests.get(
+    f"{base_url}/search"
+)
 
 print(response.status_code)
 print(response.json())
