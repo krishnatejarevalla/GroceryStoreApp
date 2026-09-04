@@ -84,5 +84,23 @@ def update_product(product_id):
 
     return jsonify({"message": "Product updated successfully!"})
 
+@app.route("/api/products/<int:product_id>", methods=["DELETE"])
+def delete_product(product_id):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "DELETE FROM Products WHERE ProductID = ?",
+        (product_id,)
+    )
+
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({"message": "Product deleted successfully!"})
+
 if __name__ == "__main__":
     app.run(debug=True)
