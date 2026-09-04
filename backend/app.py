@@ -7,34 +7,42 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return "Grocery Store App is running!"
-@app.route("/api/products/<int:product_id>", methods=["GET"])
-def get_product(product_id):
+
+@app.route("/api/products")
+def get_products():
+    active = request.args.get("active")
+
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        "SELECT * FROM Products WHERE ProductID = ?",
-        (product_id,)
-    )
+    if active is None:
+        cursor.execute("SELECT * FROM Products")
+    elif active.lower() == "true":
+        cursor.execute("SELECT * FROM Products WHERE IsActive = 1")
+    elif active.lower() == "false":
+        cursor.execute("SELECT * FROM Products WHERE IsActive = 0")
+    else:
+        cursor.close()
+        connection.close()
+        return jsonify({"message": "active must be true or false"}), 400
 
-    product = cursor.fetchone()
+    products = cursor.fetchall()
+
+    products_list = []
+
+    for product in products:
+        products_list.append({
+            "ProductID": product.ProductID,
+            "Name": product.Name,
+            "Price": float(product.Price),
+            "UOM": product.UOM,
+            "IsActive": bool(product.IsActive)
+        })
 
     cursor.close()
     connection.close()
 
-    if product is None:
-        return jsonify({"message": "Product not found!"}), 404
-
-    product_data = {
-        "ProductID": product[0],
-        "Name": product[1],
-        "Price": float(product[2]),
-        "UOM": product[3],
-        "IsActive": bool(product[4])
-    }
-
-    return jsonify(product_data)
-
+    return jsonify(products_list)
 @app.route("/api/products/search", methods=["GET"])
 def search_products():
     name = request.args.get("name")
