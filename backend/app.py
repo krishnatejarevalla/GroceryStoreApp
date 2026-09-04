@@ -7,26 +7,33 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return "Grocery Store App is running!"
-@app.route("/api/products")
-def get_products():
+@app.route("/api/products/<int:product_id>", methods=["GET"])
+def get_product(product_id):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute("SELECT * FROM Products")
-    products = cursor.fetchall()
+    cursor.execute(
+        "SELECT * FROM Products WHERE ProductID = ?",
+        (product_id,)
+    )
 
-    columns = [column[0] for column in cursor.description]
-
-    products_list = []
-
-    for product in products:
-        product_dict = dict(zip(columns, product))
-        products_list.append(product_dict)
+    product = cursor.fetchone()
 
     cursor.close()
     connection.close()
 
-    return jsonify(products_list)
+    if product is None:
+        return jsonify({"message": "Product not found!"}), 404
+
+    product_data = {
+        "ProductID": product[0],
+        "Name": product[1],
+        "Price": float(product[2]),
+        "UOM": product[3],
+        "IsActive": bool(product[4])
+    }
+
+    return jsonify(product_data)
 @app.route("/api/products", methods=["POST"])
 def add_products():
 
