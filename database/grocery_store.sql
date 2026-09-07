@@ -13,6 +13,19 @@ GO
 USE GroceryStoreDB;
 GO
 
+
+-- ============================================
+-- Categories Table
+-- ============================================
+CREATE TABLE Categories
+(
+    CategoryID INT IDENTITY(1,1) PRIMARY KEY,
+    CategoryName VARCHAR(100) NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1
+);
+GO
+
+
 -- ============================================
 -- Products Table
 -- ============================================
@@ -22,9 +35,15 @@ CREATE TABLE Products
     Name VARCHAR(100) NOT NULL,
     Price DECIMAL(10,2) NOT NULL,
     UOM VARCHAR(20) NOT NULL,
-    IsActive BIT NOT NULL DEFAULT 1
+    IsActive BIT NOT NULL DEFAULT 1,
+    CategoryID INT NULL,
+
+    CONSTRAINT FK_Products_Categories
+        FOREIGN KEY (CategoryID)
+        REFERENCES Categories(CategoryID)
 );
 GO
+
 
 -- ============================================
 -- Orders Table
@@ -37,6 +56,7 @@ CREATE TABLE Orders
     TotalAmount DECIMAL(10,2) NOT NULL DEFAULT 0
 );
 GO
+
 
 -- ============================================
 -- OrderDetails Table

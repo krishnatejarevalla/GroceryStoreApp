@@ -16,11 +16,49 @@ def get_products():
     cursor = connection.cursor()
 
     if active is None:
-        cursor.execute("SELECT * FROM Products")
+        cursor.execute("""
+            SELECT
+                p.ProductID,
+                p.Name,
+                p.Price,
+                p.UOM,
+                p.IsActive,
+                p.CategoryID,
+                c.CategoryName
+            FROM Products p
+            LEFT JOIN Categories c
+                ON p.CategoryID = c.CategoryID
+        """)
     elif active.lower() == "true":
-        cursor.execute("SELECT * FROM Products WHERE IsActive = 1")
+        cursor.execute("""
+            SELECT
+                p.ProductID,
+                p.Name,
+                p.Price,
+                p.UOM,
+                p.IsActive,
+                p.CategoryID,
+                c.CategoryName
+            FROM Products p
+            LEFT JOIN Categories c
+                ON p.CategoryID = c.CategoryID
+            WHERE p.IsActive = 1
+        """)
     elif active.lower() == "false":
-        cursor.execute("SELECT * FROM Products WHERE IsActive = 0")
+        cursor.execute("""
+            SELECT
+                p.ProductID,
+                p.Name,
+                p.Price,
+                p.UOM,
+                p.IsActive,
+                p.CategoryID,
+                c.CategoryName
+            FROM Products p
+            LEFT JOIN Categories c
+                ON p.CategoryID = c.CategoryID
+            WHERE p.IsActive = 0
+        """)
     else:
         cursor.close()
         connection.close()
@@ -31,18 +69,62 @@ def get_products():
     products_list = []
 
     for product in products:
-        products_list.append({
-            "ProductID": product.ProductID,
-            "Name": product.Name,
-            "Price": float(product.Price),
-            "UOM": product.UOM,
-            "IsActive": bool(product.IsActive)
+       products_list.append({
+        "ProductID": product.ProductID,
+        "Name": product.Name,
+        "Price": float(product.Price),
+        "UOM": product.UOM,
+        "IsActive": bool(product.IsActive),
+        "CategoryID": product.CategoryID,
+        "CategoryName": product.CategoryName
         })
 
     cursor.close()
     connection.close()
 
     return jsonify(products_list)
+
+@app.route("/api/products/<int:product_id>", methods=["GET"])
+def get_product_by_id(product_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            p.ProductID,
+            p.Name,
+            p.Price,
+            p.UOM,
+            p.IsActive,
+            p.CategoryID,
+            c.CategoryName
+        FROM Products p
+        LEFT JOIN Categories c
+            ON p.CategoryID = c.CategoryID
+        WHERE p.ProductID = ?
+        """,
+        (product_id,)
+    )
+
+    product = cursor.fetchone()
+
+    cursor.close()
+    connection.close()
+
+    if product is None:
+        return jsonify({"message": "Product not found!"}), 404
+
+    return jsonify({
+        "ProductID": product.ProductID,
+        "Name": product.Name,
+        "Price": float(product.Price),
+        "UOM": product.UOM,
+        "IsActive": bool(product.IsActive),
+        "CategoryID": product.CategoryID,
+        "CategoryName": product.CategoryName
+    }), 200
+
 @app.route("/api/products/search", methods=["GET"])
 def search_products():
     name = request.args.get("name")
@@ -54,8 +136,21 @@ def search_products():
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT * FROM Products WHERE Name LIKE ? AND IsActive = 1",
-        (f"%{name}%",)
+    """
+    SELECT
+        p.ProductID,
+        p.Name,
+        p.Price,
+        p.UOM,
+        p.IsActive,
+        p.CategoryID,
+        c.CategoryName
+    FROM Products p
+    LEFT JOIN Categories c
+        ON p.CategoryID = c.CategoryID
+    WHERE p.Name LIKE ? AND p.IsActive = 1
+    """,
+    (f"%{name}%",)
     )
 
     products = cursor.fetchall()
@@ -67,12 +162,14 @@ def search_products():
 
     for product in products:
         products_list.append({
-            "ProductID": product[0],
-            "Name": product[1],
-            "Price": float(product[2]),
-            "UOM": product[3],
-            "IsActive": bool(product[4])
-        })
+        "ProductID": product[0],
+        "Name": product[1],
+        "Price": float(product[2]),
+        "UOM": product[3],
+        "IsActive": bool(product[4]),
+        "CategoryID": product[5],
+        "CategoryName": product[6]
+    })
 
     return jsonify(products_list)
 
@@ -92,16 +189,17 @@ def add_products():
     name = data["Name"]
     price = data["Price"]
     uom = data["UOM"]
+    category_id = data.get("CategoryID")
 
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        INSERT INTO Products (Name, Price, UOM, IsActive)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO Products (Name, Price, UOM, IsActive, CategoryID)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (name, price, uom, True)
+        (name, price, uom, True, category_id)
     )
 
     connection.commit()
@@ -119,6 +217,7 @@ def update_product(product_id):
     name = data["Name"]
     price = data["Price"]
     uom = data["UOM"]
+    category_id = data.get("CategoryID")
 
     connection = get_connection()
     cursor = connection.cursor()
@@ -126,10 +225,10 @@ def update_product(product_id):
     cursor.execute(
         """
         UPDATE Products
-        SET Name = ?, Price = ?, UOM = ?
+        SET Name = ?, Price = ?, UOM = ?, CategoryID = ?
         WHERE ProductID = ?
         """,
-        (name, price, uom, product_id)
+        (name, price, uom, category_id, product_id)
     )
 
     if cursor.rowcount == 0:
