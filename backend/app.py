@@ -3,6 +3,44 @@ from db import get_connection
 
 app = Flask(__name__)
 
+def validate_product_data(data):
+
+    if not data:
+        return "Request body is required!"
+
+    if "Name" not in data:
+        return "Name is required!"
+
+    if "Price" not in data:
+        return "Price is required!"
+
+    if "UOM" not in data:
+        return "UOM is required!"
+
+    if not isinstance(data["Name"], str) or not data["Name"].strip():
+        return "Name cannot be empty!"
+
+    if not isinstance(data["UOM"], str) or not data["UOM"].strip():
+        return "UOM cannot be empty!"
+
+    try:
+        price = float(data["Price"])
+    except (ValueError, TypeError):
+        return "Price must be a number!"
+
+    if price <= 0:
+        return "Price must be greater than 0!"
+
+    if "CategoryID" in data and data["CategoryID"] is not None:
+        try:
+            category_id = int(data["CategoryID"])
+        except (ValueError, TypeError):
+            return "CategoryID must be a number!"
+
+        if category_id <= 0:
+            return "CategoryID must be greater than 0!"
+
+    return None
 
 @app.route("/")
 def home():
@@ -178,28 +216,45 @@ def add_products():
 
     data = request.json
 
-    if not data:
-        return jsonify({"message": "Request body is required!"}), 400
+    validation_error = validate_product_data(data)
 
-    if "Name" not in data or "Price" not in data or "UOM" not in data:
-        return jsonify({
-            "message": "Name, Price and UOM are required!"
-        }), 400
+    if validation_error:
+        return jsonify({"message": validation_error}), 400
 
     name = data["Name"]
-    price = data["Price"]
+    price = float(data["Price"])
     uom = data["UOM"]
     category_id = data.get("CategoryID")
 
     connection = get_connection()
     cursor = connection.cursor()
 
+    if category_id is not None:
+        cursor.execute(
+            """
+            SELECT CategoryID
+            FROM Categories
+            WHERE CategoryID = ?
+            """,
+            (category_id,)
+        )
+
+        category = cursor.fetchone()
+
+        if category is None:
+            cursor.close()
+            connection.close()
+
+            return jsonify({
+                "message": "Category not found!"
+            }), 400
+
     cursor.execute(
         """
         INSERT INTO Products (Name, Price, UOM, IsActive, CategoryID)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (name, price, uom, True, category_id)
+        (name.strip(), price, uom.strip(), True, category_id)
     )
 
     connection.commit()
@@ -207,20 +262,47 @@ def add_products():
     cursor.close()
     connection.close()
 
-    return jsonify({"message": "Product added successfully!"}), 201
+    return jsonify({
+        "message": "Product added successfully!"
+    }), 201
 
 @app.route("/api/products/<int:product_id>", methods=["PUT"])
 def update_product(product_id):
 
     data = request.json
 
+    validation_error = validate_product_data(data)
+
+    if validation_error:
+        return jsonify({"message": validation_error}), 400
+
     name = data["Name"]
-    price = data["Price"]
+    price = float(data["Price"])
     uom = data["UOM"]
     category_id = data.get("CategoryID")
 
     connection = get_connection()
     cursor = connection.cursor()
+
+    if category_id is not None:
+        cursor.execute(
+            """
+            SELECT CategoryID
+            FROM Categories
+            WHERE CategoryID = ?
+            """,
+            (category_id,)
+        )
+
+        category = cursor.fetchone()
+
+        if category is None:
+            cursor.close()
+            connection.close()
+
+            return jsonify({
+                "message": "Category not found!"
+            }), 400
 
     cursor.execute(
         """
@@ -228,21 +310,25 @@ def update_product(product_id):
         SET Name = ?, Price = ?, UOM = ?, CategoryID = ?
         WHERE ProductID = ?
         """,
-        (name, price, uom, category_id, product_id)
+        (name.strip(), price, uom.strip(), category_id, product_id)
     )
 
     if cursor.rowcount == 0:
         cursor.close()
         connection.close()
 
-        return jsonify({"message": "Product not found!"}), 404
+        return jsonify({
+            "message": "Product not found!"
+        }), 404
 
     connection.commit()
 
     cursor.close()
     connection.close()
 
-    return jsonify({"message": "Product updated successfully!"}), 200
+    return jsonify({
+        "message": "Product updated successfully!"
+    }), 200
 
 @app.route("/api/products/<int:product_id>", methods=["DELETE"])
 def delete_product(product_id):
