@@ -593,5 +593,140 @@ def delete_category(category_id):
         "message": "Category deactivated successfully!"
     }), 200
 
+@app.route("/api/orders", methods=["POST"])
+def create_order():
+
+    data = request.json
+
+    if not data:
+        return jsonify({
+            "message": "Request body is required!"
+        }), 400
+
+    customer_name = data.get("CustomerName")
+    items = data.get("Items")
+
+    if not customer_name:
+        return jsonify({
+            "message": "CustomerName is required!"
+        }), 400
+
+    if not items:
+        return jsonify({
+            "message": "Items are required!"
+        }), 400
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+
+        # ------------------------------------------------
+        # 1. Create the order
+        # ------------------------------------------------
+
+        cursor.execute(
+            """
+            INSERT INTO Orders (CustomerName, TotalAmount)
+            OUTPUT INSERTED.OrderID
+            VALUES (?, ?)
+            """,
+            (customer_name.strip(), 0)
+        )
+
+        # ------------------------------------------------
+        # 2. Get the newly created OrderID
+        # ------------------------------------------------
+
+        order_id = int(cursor.fetchone()[0])
+
+        total_amount = 0
+
+        # ------------------------------------------------
+        # 3. Add each product to OrderDetails
+        # ------------------------------------------------
+
+        for item in items:
+
+            product_id = item["ProductID"]
+            quantity = item["Quantity"]
+
+            cursor.execute(
+                """
+                SELECT Price
+                FROM Products
+                WHERE ProductID = ?
+                AND IsActive = 1
+                """,
+                (product_id,)
+            )
+
+            product = cursor.fetchone()
+
+            if product is None:
+                connection.rollback()
+
+                return jsonify({
+                    "message": f"Product {product_id} not found or inactive!"
+                }), 400
+
+            unit_price = float(product.Price)
+            item_total = unit_price * quantity
+
+            total_amount += item_total
+
+            cursor.execute(
+            """
+            INSERT INTO OrderDetails
+            (OrderID, ProductID, Quantity, UnitPrice)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                order_id,
+                product_id,
+                quantity,
+                unit_price
+            )
+        )
+
+        # ------------------------------------------------
+        # 4. Update the order total
+        # ------------------------------------------------
+
+        cursor.execute(
+            """
+            UPDATE Orders
+            SET TotalAmount = ?
+            WHERE OrderID = ?
+            """,
+            (total_amount, order_id)
+        )
+
+        # ------------------------------------------------
+        # 5. Save everything
+        # ------------------------------------------------
+
+        connection.commit()
+
+        return jsonify({
+            "message": "Order created successfully!",
+            "OrderID": order_id,
+            "TotalAmount": total_amount
+        }), 201
+
+    except Exception as e:
+
+        connection.rollback()
+
+        return jsonify({
+            "message": "Failed to create order!",
+            "error": str(e)
+        }), 500
+
+    finally:
+
+        cursor.close()
+        connection.close()
+
 if __name__ == "__main__":
     app.run(debug=True)
