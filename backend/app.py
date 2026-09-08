@@ -337,7 +337,11 @@ def delete_product(product_id):
     cursor = connection.cursor()
 
     cursor.execute(
-        "DELETE FROM Products WHERE ProductID = ?",
+        """
+        UPDATE Products
+        SET IsActive = 0
+        WHERE ProductID = ? AND IsActive = 1
+        """,
         (product_id,)
     )
 
@@ -345,14 +349,18 @@ def delete_product(product_id):
         cursor.close()
         connection.close()
 
-        return jsonify({"message": "Product not found!"}), 404
+        return jsonify({
+            "message": "Product not found or already inactive!"
+        }), 404
 
     connection.commit()
 
     cursor.close()
     connection.close()
 
-    return jsonify({"message": "Product deleted successfully!"}), 200
+    return jsonify({
+        "message": "Product deactivated successfully!"
+    }), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
