@@ -362,5 +362,236 @@ def delete_product(product_id):
         "message": "Product deactivated successfully!"
     }), 200
 
+@app.route("/api/categories", methods=["GET"])
+def get_categories():
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            CategoryID,
+            CategoryName,
+            IsActive
+        FROM Categories
+        """
+    )
+
+    categories = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    categories_list = []
+
+    for category in categories:
+        categories_list.append({
+            "CategoryID": category.CategoryID,
+            "CategoryName": category.CategoryName,
+            "IsActive": bool(category.IsActive)
+        })
+
+    return jsonify(categories_list), 200
+
+@app.route("/api/categories/<int:category_id>", methods=["GET"])
+def get_category_by_id(category_id):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            CategoryID,
+            CategoryName,
+            IsActive
+        FROM Categories
+        WHERE CategoryID = ?
+        """,
+        (category_id,)
+    )
+
+    category = cursor.fetchone()
+
+    cursor.close()
+    connection.close()
+
+    if category is None:
+        return jsonify({
+            "message": "Category not found!"
+        }), 404
+
+    return jsonify({
+        "CategoryID": category.CategoryID,
+        "CategoryName": category.CategoryName,
+        "IsActive": bool(category.IsActive)
+    }), 200
+
+@app.route("/api/categories", methods=["POST"])
+def add_category():
+
+    data = request.json
+
+    if not data:
+        return jsonify({
+            "message": "Request body is required!"
+        }), 400
+
+    if "CategoryName" not in data:
+        return jsonify({
+            "message": "CategoryName is required!"
+        }), 400
+
+    category_name = data["CategoryName"]
+
+    if not isinstance(category_name, str) or not category_name.strip():
+        return jsonify({
+            "message": "CategoryName cannot be empty!"
+        }), 400
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT CategoryID
+        FROM Categories
+        WHERE CategoryName = ?
+        """,
+        (category_name.strip(),)
+    )
+
+    existing_category = cursor.fetchone()
+
+    if existing_category is not None:
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            "message": "Category already exists!"
+        }), 400
+
+    cursor.execute(
+        """
+        INSERT INTO Categories (CategoryName, IsActive)
+        VALUES (?, ?)
+        """,
+        (category_name.strip(), True)
+    )
+
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({
+        "message": "Category added successfully!"
+    }), 201
+
+@app.route("/api/categories/<int:category_id>", methods=["PUT"])
+def update_category(category_id):
+
+    data = request.json
+
+    if not data:
+        return jsonify({
+            "message": "Request body is required!"
+        }), 400
+
+    if "CategoryName" not in data:
+        return jsonify({
+            "message": "CategoryName is required!"
+        }), 400
+
+    category_name = data["CategoryName"]
+
+    if not isinstance(category_name, str) or not category_name.strip():
+        return jsonify({
+            "message": "CategoryName cannot be empty!"
+        }), 400
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT CategoryID
+        FROM Categories
+        WHERE CategoryName = ?
+        AND CategoryID != ?
+        """,
+        (category_name.strip(), category_id)
+    )
+
+    existing_category = cursor.fetchone()
+
+    if existing_category is not None:
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            "message": "Category already exists!"
+        }), 400
+
+    cursor.execute(
+        """
+        UPDATE Categories
+        SET CategoryName = ?
+        WHERE CategoryID = ?
+        AND IsActive = 1
+        """,
+        (category_name.strip(), category_id)
+    )
+
+    if cursor.rowcount == 0:
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            "message": "Category not found or inactive!"
+        }), 404
+
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({
+        "message": "Category updated successfully!"
+    }), 200
+
+@app.route("/api/categories/<int:category_id>", methods=["DELETE"])
+def delete_category(category_id):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        UPDATE Categories
+        SET IsActive = 0
+        WHERE CategoryID = ? AND IsActive = 1
+        """,
+        (category_id,)
+    )
+
+    if cursor.rowcount == 0:
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            "message": "Category not found or already inactive!"
+        }), 404
+
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({
+        "message": "Category deactivated successfully!"
+    }), 200
+
 if __name__ == "__main__":
     app.run(debug=True)
