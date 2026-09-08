@@ -234,7 +234,7 @@ def add_products():
             """
             SELECT CategoryID
             FROM Categories
-            WHERE CategoryID = ?
+            WHERE CategoryID = ? AND IsActive = 1
             """,
             (category_id,)
         )
@@ -289,7 +289,7 @@ def update_product(product_id):
             """
             SELECT CategoryID
             FROM Categories
-            WHERE CategoryID = ?
+            WHERE CategoryID = ? AND IsActive = 1
             """,
             (category_id,)
         )

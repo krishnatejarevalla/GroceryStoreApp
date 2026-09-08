@@ -137,3 +137,41 @@ response = requests.put(
 
 print(response.status_code)
 print(response.json())
+
+# ============================================================
+# 21. ADD PRODUCT - INACTIVE CATEGORY
+# ============================================================
+
+print("\n--- ADD PRODUCT - INACTIVE CATEGORY ---")
+
+response = requests.post(
+    base_url,
+    json={
+        "Name": "Inactive Category Test",
+        "Price": 50,
+        "UOM": "Packet",
+        "CategoryID": 6
+    }
+)
+
+print(response.status_code)
+print(response.json())
+
+# ============================================================
+# 22. UPDATE PRODUCT - INACTIVE CATEGORY
+# ============================================================
+
+print("\n--- UPDATE PRODUCT - INACTIVE CATEGORY ---")
+
+response = requests.put(
+    base_url + "/1",
+    json={
+        "Name": "Premium Basmati Rice",
+        "Price": 90,
+        "UOM": "Kg",
+        "CategoryID": 6
+    }
+)
+
+print(response.status_code)
+print(response.json())
