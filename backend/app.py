@@ -42,6 +42,70 @@ def validate_product_data(data):
 
     return None
 
+def validate_order_data(data):
+
+    if not data:
+        return "Request body is required!"
+
+    if "CustomerName" not in data:
+        return "CustomerName is required!"
+
+    if "Items" not in data:
+        return "Items are required!"
+
+    customer_name = data["CustomerName"]
+    items = data["Items"]
+
+    if not isinstance(customer_name, str) or not customer_name.strip():
+        return "CustomerName cannot be empty!"
+
+    if not isinstance(items, list):
+        return "Items must be a list!"
+
+    if len(items) == 0:
+        return "Items cannot be empty!"
+    product_ids = set()
+
+    for item in items:
+
+        if not isinstance(item, dict):
+            return "Each item must be an object!"
+
+        if "ProductID" not in item:
+            return "ProductID is required!"
+
+        if "Quantity" not in item:
+            return "Quantity is required!"
+
+        try:
+            product_id = int(item["ProductID"])
+
+            if isinstance(item["ProductID"], float) and not item["ProductID"].is_integer():
+                return "ProductID must be a whole number!"
+
+        except (ValueError, TypeError):
+            return "ProductID must be a number!"
+
+        if product_id <= 0:
+            return "ProductID must be greater than 0!"
+
+        if product_id in product_ids:
+            return "Duplicate ProductID is not allowed!"
+
+        product_ids.add(product_id)
+
+        try:
+            quantity = float(item["Quantity"])
+        except (ValueError, TypeError):
+            return "Quantity must be a number!"
+
+        if quantity <= 0:
+            return "Quantity must be greater than 0!"
+
+    return None
+
+    
+
 @app.route("/")
 def home():
     return "Grocery Store App is running!"
@@ -598,23 +662,15 @@ def create_order():
 
     data = request.json
 
-    if not data:
+    validation_error = validate_order_data(data)
+
+    if validation_error:
         return jsonify({
-            "message": "Request body is required!"
+            "message": validation_error
         }), 400
 
-    customer_name = data.get("CustomerName")
-    items = data.get("Items")
-
-    if not customer_name:
-        return jsonify({
-            "message": "CustomerName is required!"
-        }), 400
-
-    if not items:
-        return jsonify({
-            "message": "Items are required!"
-        }), 400
+    customer_name = data["CustomerName"]
+    items = data["Items"]
 
     connection = get_connection()
     cursor = connection.cursor()
@@ -648,12 +704,12 @@ def create_order():
 
         for item in items:
 
-            product_id = item["ProductID"]
-            quantity = item["Quantity"]
+            product_id = int(item["ProductID"])
+            quantity = float(item["Quantity"])
 
             cursor.execute(
                 """
-                SELECT Price
+                SELECT Price, UOM
                 FROM Products
                 WHERE ProductID = ?
                 AND IsActive = 1
@@ -671,6 +727,16 @@ def create_order():
                 }), 400
 
             unit_price = float(product.Price)
+            unit_price = float(product.Price)
+            uom = product.UOM
+
+            if uom.lower() not in ["kg"] and not quantity.is_integer():
+                connection.rollback()
+
+                return jsonify({
+                    "message": f"Fractional quantity is not allowed for {uom} products!"
+                }), 400
+
             item_total = unit_price * quantity
 
             total_amount += item_total
