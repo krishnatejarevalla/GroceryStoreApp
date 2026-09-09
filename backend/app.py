@@ -1,7 +1,7 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from db import get_connection
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="../frontend", static_url_path="")
 
 def validate_product_data(data):
 
@@ -108,7 +108,7 @@ def validate_order_data(data):
 
 @app.route("/")
 def home():
-    return "Grocery Store App is running!"
+    return send_from_directory("../frontend", "index.html")
 
 @app.route("/api/products")
 def get_products():
