@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
 
@@ -23,6 +24,26 @@
 
             <h2>Products</h2>
 
+            <div class="search-container">
+
+                <input
+                    type="text"
+                    id="search-input"
+                    placeholder="Search products..."
+                >
+
+                <button id="search-button">
+                    Search
+                </button>
+
+                <button id="clear-button">
+                    Clear
+                </button>
+
+            </div>
+
+            <div id="status-message"></div>
+
             <div id="products-container">
                 <p>Loading products...</p>
             </div>
@@ -34,4 +55,5 @@
     <script src="script.js"></script>
 
 </body>
+
 </html>
