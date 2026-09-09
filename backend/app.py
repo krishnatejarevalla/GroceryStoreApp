@@ -727,7 +727,7 @@ def create_order():
                 }), 400
 
             unit_price = float(product.Price)
-            unit_price = float(product.Price)
+
             uom = product.UOM
 
             if uom.lower() not in ["kg"] and not quantity.is_integer():
