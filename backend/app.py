@@ -492,6 +492,96 @@ def get_category_by_id(category_id):
         "IsActive": bool(category.IsActive)
     }), 200
 
+@app.route("/api/orders", methods=["GET"])
+def get_orders():
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            OrderID,
+            CustomerName,
+            TotalAmount
+        FROM Orders
+        ORDER BY OrderID DESC
+        """
+    )
+
+    orders = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    orders_list = []
+
+    for order in orders:
+        orders_list.append({
+            "OrderID": order.OrderID,
+            "CustomerName": order.CustomerName,
+            "TotalAmount": float(order.TotalAmount)
+        })
+
+    return jsonify(orders_list), 200
+
+@app.route("/api/orders/<int:order_id>", methods=["GET"])
+def get_order_by_id(order_id):
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            o.OrderID,
+            o.CustomerName,
+            o.TotalAmount,
+            od.ProductID,
+            p.Name AS ProductName,
+            od.Quantity,
+            od.UnitPrice,
+            od.TotalPrice
+        FROM Orders o
+        INNER JOIN OrderDetails od
+            ON o.OrderID = od.OrderID
+        INNER JOIN Products p
+            ON od.ProductID = p.ProductID
+        WHERE o.OrderID = ?
+        """,
+        (order_id,)
+    )
+
+    rows = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    if not rows:
+        return jsonify({
+            "message": "Order not found!"
+        }), 404
+
+    order = rows[0]
+
+    items = []
+
+    for row in rows:
+        items.append({
+            "ProductID": row.ProductID,
+            "ProductName": row.ProductName,
+            "Quantity": float(row.Quantity),
+            "UnitPrice": float(row.UnitPrice),
+            "TotalPrice": float(row.TotalPrice)
+        })
+
+    return jsonify({
+        "OrderID": order.OrderID,
+        "CustomerName": order.CustomerName,
+        "TotalAmount": float(order.TotalAmount),
+        "Items": items
+    }), 200
+
 @app.route("/api/categories", methods=["POST"])
 def add_category():
 
