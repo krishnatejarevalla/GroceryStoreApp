@@ -26,6 +26,8 @@ const cartContainer =
     document.getElementById("cart-container");
 
 let cart = [];
+
+
 async function loadProducts() {
 
     statusMessage.textContent = "Loading products...";
@@ -159,8 +161,9 @@ function displayProducts(products) {
         `;
 
         productsContainer.appendChild(productCard);
-                const addButton =
-        productCard.querySelector(".add-cart-button");
+
+        const addButton =
+            productCard.querySelector(".add-cart-button");
 
         addButton.addEventListener("click", () => {
 
@@ -172,7 +175,9 @@ function displayProducts(products) {
 
             if (quantity <= 0) {
 
-                alert("Please enter a quantity greater than 0.");
+                alert(
+                    "Please enter a quantity greater than 0."
+                );
 
                 return;
             }
@@ -190,11 +195,13 @@ function displayProducts(products) {
     });
 }
 
+
 function addToCart(product) {
 
-    const existingItem = cart.find(
-        item => item.ProductID === product.ProductID
-    );
+    const existingItem =
+        cart.find(
+            item => item.ProductID === product.ProductID
+        );
 
     if (existingItem) {
 
@@ -207,6 +214,7 @@ function addToCart(product) {
 
     displayCart();
 }
+
 
 function displayCart() {
 
@@ -232,7 +240,8 @@ function displayCart() {
         const cartItem =
             document.createElement("div");
 
-        cartItem.className = "cart-item";
+        cartItem.className =
+            "cart-item";
 
         cartItem.innerHTML = `
             <p>
@@ -263,6 +272,7 @@ function displayCart() {
 
     cartContainer.appendChild(totalElement);
 }
+
 
 async function createOrder() {
 
@@ -299,18 +309,19 @@ async function createOrder() {
 
     try {
 
-        const response = await fetch(
-            "/api/orders",
-            {
-                method: "POST",
+        const response =
+            await fetch(
+                "/api/orders",
+                {
+                    method: "POST",
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
 
-                body: JSON.stringify(orderData)
-            }
-        );
+                    body: JSON.stringify(orderData)
+                }
+            );
 
         const result =
             await response.json();
@@ -318,7 +329,8 @@ async function createOrder() {
         if (!response.ok) {
 
             throw new Error(
-                result.message || "Failed to create order"
+                result.message ||
+                "Failed to create order"
             );
         }
 
@@ -339,10 +351,13 @@ async function createOrder() {
         console.error(error);
     }
 }
+
+
 searchButton.addEventListener(
     "click",
     searchProducts
 );
+
 
 clearButton.addEventListener(
     "click",
@@ -354,11 +369,11 @@ clearButton.addEventListener(
     }
 );
 
+
 createOrderButton.addEventListener(
     "click",
     createOrder
 );
-
 
 
 loadProducts();
